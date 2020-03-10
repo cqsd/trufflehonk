@@ -1,6 +1,6 @@
 import json
 
-from trufflepawg.outputs.base import BaseOutput
+from trufflehonk.outputs.base import BaseOutput
 
 
 class StdoutOutput(BaseOutput):

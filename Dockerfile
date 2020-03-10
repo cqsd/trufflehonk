@@ -1,8 +1,10 @@
 FROM python:3-alpine
 
+RUN apk update && apk add git
+
 RUN adduser -D -s /bin/nologin aha
 
-WORKDIR /trufflemog
+WORKDIR /trufflehonk
 
 USER aha
 

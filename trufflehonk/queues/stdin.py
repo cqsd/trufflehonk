@@ -1,6 +1,6 @@
 import sys
 
-from trufflepawg.queues.base import BaseQueue
+from trufflehonk.queues.base import BaseQueue
 
 
 class StdinQueue(BaseQueue):

@@ -16,7 +16,8 @@ class ExecMixin:
         return stdout
 
 
-# this one might be too limiting
+# this should probably be context managers actually, cuz we should clean up
+# the temp files after we're done
 class TempFileMixin:
     def tempfile(self):
         if not hasattr(self, '_tempfile'):
@@ -30,9 +31,11 @@ class TempFileMixin:
         return self._tempdir
 
 
+# TODO fix names
 class GithubMixin(ExecMixin, TempFileMixin):
     @classmethod
     def _get_repo(cls, org, repo):
+        '''get repo metadata from the github api'''
         base_url = 'https://api.github.com/'
         resp = requests.get(os.path.join(base_url, 'repos', org, repo))
 
@@ -41,8 +44,9 @@ class GithubMixin(ExecMixin, TempFileMixin):
         else:
             raise Exception(f'Github API Error {resp.reason}')
 
+    # TODO probably want a plain version of this too
     def _repo_path(self, org, repo):
-        '''Clones a git repo if it doesn't exist. Return path to repo.'''
+        '''Clone a github repo if it doesn't exist. Return local path to repo.'''
         repo_abs_path = f'{self.tempdir()}/{org}/{repo}'
         self.repo_url = f'https://github.com/{self.org}/{self.repo}'
 

@@ -1,8 +1,8 @@
 import json
 from pydriller import RepositoryMining
 
-from trufflepawg.jobs.base import BaseJob
-from trufflepawg.jobs import mixins
+from trufflehonk.jobs.base import BaseJob
+from trufflehonk.jobs import mixins
 
 
 # TODO: need a teardown that removes the repo from disk

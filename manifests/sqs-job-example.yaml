@@ -1,0 +1,47 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trufflehonk
+  labels:
+    app.kubernetes.io/name: trufflehonk
+    app.kubernetes.io/part-of: trufflehonk
+
+---
+apiVersion: v1
+kind: Secret
+data:
+  AWS_ACCESS_KEY_ID: base64-key-id-here
+  AWS_SECRET_ACCESS_KEY: base64-key-here
+  # us-west-2
+  AWS_DEFAULT_REGION: dXMtd2VzdC0y
+  # these aren't actually secret but we're already here
+  S3_BUCKET_NAME: base64-bucket-name-here
+  SQS_QUEUE_URL: base64-sqs-queue-url-here
+metadata:
+  name: trufflehonk-job-secret
+  namespace: trufflehonk
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trufflehonk-worker
+  namespace: trufflehonk
+  labels:
+    app.kubernetes.io/name: trufflehonk-job
+    app.kubernetes.io/part-of: trufflehonk
+spec:
+  parallelism: 5
+  template:
+    metadata:
+      name: trufflehonk-job
+    spec:
+      containers:
+      - name: trufflehonk-worker
+        image: trufflehonk:v0.1.1
+        imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: trufflehonk-job-secret
+      restartPolicy: OnFailure
