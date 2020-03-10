@@ -16,3 +16,8 @@ variable message_retention_seconds {
   type    = number
   default = 3600 // 1 hour
 }
+
+variable bucket_name {
+  type        = string
+  description = "name of bucket to use for s3 outputs"
+}

@@ -3,3 +3,4 @@ __pycache__
 *pyc
 .terraform
 terraform.tfvars
+terraform.tfstate

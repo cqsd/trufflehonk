@@ -1,3 +1,7 @@
+resource aws_s3_bucket main {
+  bucket = var.bucket_name
+}
+
 resource aws_sqs_queue main {
   name                      = var.queue_name
   max_message_size          = var.max_message_size
