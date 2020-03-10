@@ -16,8 +16,8 @@ data:
   # us-west-2
   AWS_DEFAULT_REGION: dXMtd2VzdC0y
   # these aren't actually secret but we're already here
-  S3_BUCKET_NAME: base64-bucket-name-here
-  SQS_QUEUE_URL: base64-sqs-queue-url-here
+  TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME: base64-bucket-name-here
+  TRUFFLEHONK_QUEUE_SQS_URL: base64-sqs-queue-url-here
 metadata:
   name: trufflehonk-job-secret
   namespace: trufflehonk

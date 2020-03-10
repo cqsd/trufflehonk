@@ -1,11 +1,10 @@
-import os
 from trufflehonk.jobs.github import PyDriller, Trufflehog
 from trufflehonk.outputs.stdout import StdoutOutput
 from trufflehonk.outputs.s3 import S3Output
 from trufflehonk.queues.sqs import SqsQueue
 
-BUCKET = os.environ['S3_BUCKET_NAME']
-
+# sqs has message visibility timeout (30s by default here) to help prevent race
+# conditions with multiple queue consumers
 for job in SqsQueue():
     org, repo = job.strip().split(' ')
     tf = Trufflehog(org, repo)
@@ -22,5 +21,5 @@ for job in SqsQueue():
     stdout.output(tf)
     stdout.output(pd)
 
-    s3.output(tf, bucket=BUCKET, key=f'trufflehog/{org}/{repo}')
-    s3.output(pd, bucket=BUCKET, key=f'pydriller/{org}/{repo}')
+    s3.output(tf, key=f'trufflehog/{org}/{repo}')
+    s3.output(pd, key=f'pydriller/{org}/{repo}')

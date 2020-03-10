@@ -9,7 +9,7 @@ sqs = boto3.client('sqs')
 
 class SqsQueue(BaseQueue):
     def __init__(self, queue_url=None):
-        self.queue_url = queue_url or os.environ['SQS_QUEUE_URL']
+        self.queue_url = queue_url or os.environ['TRUFFLEHONK_QUEUE_SQS_URL']
 
     def pop(self, n=1, visibility_timeout=30, wait_timeout=5):
         response = sqs.receive_message(
