@@ -1,0 +1,4 @@
+terraform
+__pycache__
+*pyc
+.git
