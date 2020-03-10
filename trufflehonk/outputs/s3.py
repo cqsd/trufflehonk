@@ -15,7 +15,7 @@ class S3Output(BaseOutput):
 
     def output(self, job, bucket, key):
         output_binary = codecs.encode(
-            json.dumps(job.output()),
+            json.dumps(job.output),
             'utf-8'
         )
         s3.put_object(

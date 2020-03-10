@@ -1,25 +1,39 @@
 import json
+import os
+
 from pydriller import RepositoryMining
 
 from trufflehonk.jobs.base import BaseJob
 from trufflehonk.jobs import mixins
+from trufflehonk.utils import exec_timeout
 
 
 # TODO: need a teardown that removes the repo from disk
-class GithubJob(BaseJob, mixins.GithubMixin):
-    def __init__(self, org, repo, *args, **kwargs):
+class GithubJob(BaseJob, mixins.TempFileMixin):
+    def __init__(self, org, repo):
         self.org = org
         self.repo = repo
         # only used for enriching output
         self.repo_url = f'https://github.com/{self.org}/{self.repo}'
-        self.meta = {
-            'repo_is_fork': Trufflehog._get_repo(org, repo)['fork']
-        }
-        self._output = None
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
+    # 1 - make me a generic git version of this
+    # 2 - instead of a random tempdir, use a common base directory for all
+    #     instances of this class (?) or at least a fixed common base dir
+    #     to prevent re-cloning
     def repo_path(self):
-        return self._repo_path(self.org, self.repo)
+        '''Clone a github repo if it doesn't exist locally. Return local path
+        to repo.'''
+        repo_abs_path = f'{self.tempdir}/{self.org}/{self.repo}'
+
+        if not os.path.exists(repo_abs_path):
+            # XXX: ValueError: Reference at 'refs/heads/master' does not exist
+            # raised when cloning an empty repo
+            git_args = ['clone', self.repo_url, repo_abs_path]
+            # git clone creates dirs
+            exec_timeout(['git', *git_args])
+
+        return repo_abs_path
 
 
 class Trufflehog(GithubJob):
@@ -30,7 +44,7 @@ class Trufflehog(GithubJob):
             '--json',
             self.repo_path()
         ]
-        raw_output = self.exec(['trufflehog', *args])
+        raw_output = exec_timeout(['trufflehog', *args])
 
         acc = []
         for line in raw_output.splitlines():
@@ -40,19 +54,11 @@ class Trufflehog(GithubJob):
             commit_hash = finding['commitHash']
             file_path = finding['path']
             commit_link = f'{self.repo_url}/blob/{commit_hash}/{file_path}'
+            finding['commit_link'] = commit_link
 
-            # add some stuff to make it easier to search later
-            meta = {**self.meta}
-            meta['direct_link'] = commit_link
-            finding['meta'] = meta
-
-            # wish you could get the author but trufflehog is too haha for that
             acc.append(finding)
 
-        self._output = acc
-
-    def output(self):
-        return self._output
+        self.output = acc
 
 
 class PyDriller(GithubJob):
@@ -74,7 +80,4 @@ class PyDriller(GithubJob):
         for email, names in authors.items():
             authors[email] = list(names)
 
-        self._output = authors
-
-    def output(self):
-        return self._output
+        self.output = authors
