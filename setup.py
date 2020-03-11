@@ -7,8 +7,8 @@ setuptools.setup(
     version='0.0.1',
     author='cqsd',
     author_email='',
-    packages=setuptools.find_packages(where='trufflehonk'),
-    package_dir={'': 'trufflehonk'},
+    packages=setuptools.find_packages(where='.'),
+    package_dir={'': '.'},
     url='https://github.com/cqsd/trufflehonk',
     classifiers=[
         "Programming Language :: Python :: 3",
