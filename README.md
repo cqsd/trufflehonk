@@ -12,12 +12,17 @@ install deps
 ```bash
 python3 -m venv /tmp/epicgamermoment
 source /tmp/epicgamermoment/bin/activate
-pip install -r requirements.txt
+# install trufflehonk lib
+pip install -e .
+
+# install trufflehog and pydriller, only required if you actually intend to use them.
+# these are assumed to be installed for the examples below
+pip install -r requirements-example.txt
 ```
 
 `stdin -> trufflehog + pydriller -> stdout`
 ```
-echo cqsd test | python3 example-stdin.py
+echo cqsd test | python3 examples/example-stdin.py
 ```
 
 `sqs -> trufflehog + pydriller -> s3`
@@ -31,7 +36,7 @@ done
 
 env TRUFFLEHONK_QUEUE_SQS_URL="${QUEUE_URL}" \
     TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME="${BUCKET_NAME}" \
-    python3 example-sqs.py
+    python3 examples/example-sqs.py
 aws s3 ls --recursive "s3://${BUCKET_NAME}"
 ```
 
@@ -52,8 +57,8 @@ kubectl apply -f manifests/sqs-job-example.yaml
 ### jobs
 |path|description|requirements|
 |-|-|-|
-|`trufflehonk.jobs.github.Trufflehog`|run trufflehog on a github repo|args: `org`, `repo`|
-|`trufflehonk.jobs.github.PyDriller`|run pydriller on a github repo|args: `org`, `repo`|
+|`trufflehonk.jobs.trufflehog.Trufflehog`|run trufflehog on a github repo|args: `org`, `repo`|
+|`trufflehonk.jobs.pydriller.PyDriller`|run pydriller on a github repo|args: `org`, `repo`|
 
 \* todo: generic git (there's no difference but i hardcoded a github base url)
 
