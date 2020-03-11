@@ -26,7 +26,8 @@ def flatten_dict_keys(d, parent_key='', sep='_'):
 def exec_timeout(exec_args, timeout=600):
     stdout, _ = subprocess.Popen(
         exec_args,
-        stdout=subprocess.PIPE
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL
     ).communicate(timeout=timeout)
 
     return stdout

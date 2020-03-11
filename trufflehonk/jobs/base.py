@@ -13,3 +13,11 @@ class BaseJob(abc.ABC):
     @output.setter
     def output(self, output):
         self.__output = output
+
+    @property
+    def output_json(self):
+        return self.output
+
+    @property
+    def output_human(self):
+        return self.output

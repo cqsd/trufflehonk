@@ -1,6 +1,5 @@
 from trufflehonk.jobs.trufflehog import Trufflehog
 from trufflehonk.jobs.pydriller import PyDriller
-from trufflehonk.outputs.stdout import StdoutOutput
 from trufflehonk.outputs.s3 import S3Output
 from trufflehonk.queues.sqs import SqsQueue
 
@@ -16,11 +15,10 @@ for job in SqsQueue():
     tf.run()
     pd.run()
 
-    stdout = StdoutOutput()
     s3 = S3Output()
 
-    stdout.output(tf)
-    stdout.output(pd)
+    print(tf.output_human)
+    print(pd.output_human)
 
     s3.output(tf, key=f'trufflehog/{org}/{repo}')
     s3.output(pd, key=f'pydriller/{org}/{repo}')

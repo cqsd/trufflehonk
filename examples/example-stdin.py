@@ -1,5 +1,4 @@
 from trufflehonk.queues.stdin import StdinQueue
-from trufflehonk.outputs.stdout import StdoutOutput
 
 from trufflehonk.jobs.trufflehog import Trufflehog
 from trufflehonk.jobs.pydriller import PyDriller
@@ -14,7 +13,5 @@ for job in StdinQueue():
     tf.run()
     pd.run()
 
-    stdout = StdoutOutput()
-
-    stdout.output(tf)
-    stdout.output(pd)
+    print(tf.output_human)
+    print(pd.output_human)

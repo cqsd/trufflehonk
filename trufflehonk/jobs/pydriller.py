@@ -9,8 +9,9 @@ class PyDriller(GitJob):
         authors = dict()
         for commit in repo.traverse_commits():
             ae = commit.author.email
-            if ae is None:
+            if not ae:
                 # this can happen, as it happens ;)
+                # sometimes it's an empty string, sometimes it's just None
                 ae = '*no-email*'
             an = commit.author.name
             if ae not in authors:
@@ -23,3 +24,22 @@ class PyDriller(GitJob):
             authors[email] = list(names)
 
         self.output = authors
+
+    @property
+    def output_human(self):
+        return output_human(self.output)
+
+
+def output_human(authors):
+    acc = ''
+
+    def print(s, end='\n'):
+        nonlocal acc
+        acc += s + end
+
+    email_left_pad = max(len(email) for email in authors)
+    for email in authors:
+        names = authors[email]
+        print(f'{email:{email_left_pad}} {names}')
+
+    return acc
