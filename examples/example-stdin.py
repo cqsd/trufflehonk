@@ -6,10 +6,9 @@ from examples import pydriller as pd_job
 
 for job in StdinQueue():
     org, repo = job.strip().split(' ')
-    repo_url = f'https://github.com/{org}/{repo}'
-    clone_path = f'/tmp/{repo}'
-    tf = tf_job.Trufflehog(repo_url, clone_path)
-    pd = pd_job.PyDriller(repo_url, clone_path)
+    repo_url = 'https://github.com/{org}/{repo}'
+    tf = tf_job.Trufflehog(repo_url, '.')
+    pd = pd_job.PyDriller(repo_url, '.')
 
     tf.run()
     pd.run()
