@@ -1,31 +1,21 @@
-## overview
-```
-[[  QUEUE  ]]  # stdin, sqs
-      |
-[[   JOB   ]]  # trufflehog, pydriller
-     /|\
-[[ OUTPUTS ]]  # stdout, s3
-```
+i was asked to automate trufflehog (sort of) so here
 
 ## examples
-install deps
 ```bash
 python3 -m venv /tmp/epicgamermoment
 source /tmp/epicgamermoment/bin/activate
-# install trufflehonk lib
 pip install -e .
-
-# install trufflehog and pydriller, only required if you actually intend to use them.
-# these are assumed to be installed for the examples below
-pip install -r requirements-example.txt
+trufflemog scan cqsd --repos test,trufflehonk
 ```
 
-`stdin -> trufflehog + pydriller -> stdout`
-```
-echo cqsd test | python3 examples/example-stdin.py
+for all repos in an org/user account
+```bash
+# github limitation: you have to spec whether you're looking for a user or an org
+trufflemog scan cqsd --user
+trufflemog scan wpengine
 ```
 
-`sqs -> trufflehog + pydriller -> s3`
+consume off a queue why not `sqs -> trufflehog + pydriller -> s3`
 Prerequisites: SQS queue and S3 bucket (see `./terraform/`)
 ```bash
 for msg in $(github list-repos user cqsd); do
@@ -40,7 +30,8 @@ env TRUFFLEHONK_QUEUE_SQS_URL="${QUEUE_URL}" \
 aws s3 ls --recursive "s3://${BUCKET_NAME}"
 ```
 
-goobernetes example in `./manifests/`
+goobernetes example in `./manifests/` won't work because the Dockerfile hasn't
+been updated in a while you can fix that yourself lmao
 ```bash
 # this is broken right now you can fix it yourself lmfao
 docker build -t trufflehonk:v0.1.1 .
@@ -69,12 +60,13 @@ kubectl apply -f manifests/sqs-job-example.yaml
 |`trufflehonk.outputs.stdout.StdoutOutput`|print output to stdout||
 |`trufflehonk.outputs.s3.S3Output`|save output to a given key in a bucket|aws credentials, env `TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME`, arg: `key`|
 
-## docs
-lol?
-
-look at `base.py` for required methods
-
 ## fyi
 there's trufflehog and pydriller example jobs just to make this useful out of
 the box but this is really intended to be used as a generic job worker library
 i should probably rename the project
+
+## docs
+lol?
+
+## TODO
+pass through the rest of the trufflehog options

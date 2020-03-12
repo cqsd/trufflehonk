@@ -17,6 +17,9 @@ setuptools.setup(
     install_requires=[
         'boto3',
         'requests',
+        'trufflehog',
+        'pydriller',
     ],
+    scripts=['cli/trufflemog'],
     python_requires='>=3.7',
 )

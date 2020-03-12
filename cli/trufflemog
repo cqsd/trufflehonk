@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+import os
+import sys
+import tempfile
+
+from trufflehonk.jobs import trufflehog, pydriller
+from trufflehonk.utils import github_org_repos, update_dict_sets
+
+
+def mog_github(org, user=False, clone_path=None, repos=None):
+    secrets = []
+    author_emails = dict()
+    tempdir = None
+
+    if not clone_path:
+        tempdir = tempfile.TemporaryDirectory()
+        tempdir.name
+        print(f'cloning repos into temporary directory {tempdir.name}')
+        clone_path = tempdir.name
+
+    if not repos:
+        repos = github_org_repos(org, user=True)
+
+    for repo in repos:
+        try:
+            repo_url = f'https://github.com/{org}/{repo}'
+            clone_path = os.path.join(clone_path, org, repo)
+
+            tf = trufflehog.Trufflehog(repo_url, clone_path)
+            pd = pydriller.PyDriller(repo_url, clone_path)
+
+            print(f'processing {repo_url}', file=sys.stderr)
+
+            tf.run()
+            pd.run()
+
+            secrets += tf.output
+            update_dict_sets(author_emails, pd.output)
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            # I don't know what exceptions can happen tbh
+            print(e)
+
+    print('secrets')
+    print('============================')
+    print(trufflehog.output_human(secrets))
+    print('commit authors')
+    print('============================')
+    print(pydriller.output_human(author_emails))
+
+
+def mog_github_cmd(args):
+    mog_github(args.org, args.user, args.clone_path, args.repos)
+
+
+def commastring(s):
+    return s.split(',')
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser('trufflemog')
+    parser.set_defaults(func=None)
+
+    subparsers = parser.add_subparsers(title='subcommands')
+
+    mog_subparser = subparsers.add_parser('mog', aliases=['scan'])
+    mog_subparser.add_argument('org', metavar='NAME', help='name of org or user')
+    mog_subparser.add_argument('--repos', help='comma-separated list of repos', type=commastring, default=None)
+    mog_subparser.add_argument('--user', help='set if the username belongs to a user (github api limitation)', action='store_true', default=False)
+    mog_subparser.add_argument('--clone-path', help='basedir to clone into', default=None)
+    mog_subparser.set_defaults(func=mog_github_cmd)
+
+    args = parser.parse_args()
+
+    if args.func:
+        args.func(args)
+    else:
+        parser.print_usage()
