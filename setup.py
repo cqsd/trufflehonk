@@ -20,6 +20,6 @@ setuptools.setup(
         'trufflehog',
         'pydriller',
     ],
-    scripts=['cli/trufflemog'],
+    scripts=['cli/trufflehonk'],
     python_requires='>=3.7',
 )

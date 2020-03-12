@@ -7,7 +7,7 @@ from trufflehonk.jobs import trufflehog, pydriller
 from trufflehonk.utils import github_org_repos, update_dict_sets
 
 
-def mog_github(org, user=False, clone_path=None, repos=None):
+def honk_github(org, user=False, clone_path=None, repos=None):
     secrets = []
     author_emails = dict()
     tempdir = None
@@ -50,8 +50,8 @@ def mog_github(org, user=False, clone_path=None, repos=None):
     print(pydriller.output_human(author_emails))
 
 
-def mog_github_cmd(args):
-    mog_github(args.org, args.user, args.clone_path, args.repos)
+def honk_github_cmd(args):
+    honk_github(args.org, args.user, args.clone_path, args.repos)
 
 
 def commastring(s):
@@ -61,17 +61,17 @@ def commastring(s):
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser('trufflemog')
+    parser = argparse.ArgumentParser('trufflehonk')
     parser.set_defaults(func=None)
 
     subparsers = parser.add_subparsers(title='subcommands')
 
-    mog_subparser = subparsers.add_parser('mog', aliases=['scan'])
-    mog_subparser.add_argument('org', metavar='NAME', help='name of org or user')
-    mog_subparser.add_argument('--repos', help='comma-separated list of repos', type=commastring, default=None)
-    mog_subparser.add_argument('--user', help='set if the username belongs to a user (github api limitation)', action='store_true', default=False)
-    mog_subparser.add_argument('--clone-path', help='basedir to clone into', default=None)
-    mog_subparser.set_defaults(func=mog_github_cmd)
+    honk_subparser = subparsers.add_parser('honk', aliases=['scan'])
+    honk_subparser.add_argument('org', metavar='NAME', help='name of org or user')
+    honk_subparser.add_argument('--repos', help='comma-separated list of repos', type=commastring, default=None)
+    honk_subparser.add_argument('--user', help='set if the username belongs to a user (github api limitation)', action='store_true', default=False)
+    honk_subparser.add_argument('--clone-path', help='basedir to clone into', default=None)
+    honk_subparser.set_defaults(func=honk_github_cmd)
 
     args = parser.parse_args()
 

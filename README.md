@@ -1,6 +1,4 @@
-> i was asked to automate trufflehog (sort of) so here, in the long tradition
-> of "security" "practitioners" repackaging more competent people's work for
-> clout using more code than necessary,...
+> i was asked to automate trufflehog (sort of) so here,
 
 ## examples
 ```bash
