@@ -25,6 +25,9 @@ class SqsQueue(BaseQueue):
                 QueueUrl=self.queue_url,
                 ReceiptHandle=message['ReceiptHandle']
             )
-            return message['Body']  # ['Message']
+            # why .strip? try queueing a url using the aws cli and you'll see why
+            # (why does the aws cli try to fetch the message body if it's a url?)
+            # (hack around this in testing by adding a space to the start)
+            return message['Body'].strip()  # ['Message']
         else:
             return None

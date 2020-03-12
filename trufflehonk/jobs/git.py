@@ -7,15 +7,12 @@ from trufflehonk.utils import exec_timeout
 
 # TODO: remove the repo from disk when using default tempdir
 class GitJob(BaseJob, mixins.TempFileMixin):
-    def __init__(self, repo_url, clone_path_name=''):
+    def __init__(self, repo_url, repo_basedir=None, repo_basename=None):
         self.repo_url = repo_url
 
-        if not clone_path_name:
-            basedir = self.tempdir()
-            basename = os.path.basename(repo_url)
-            self.clone_path_name = os.path.join(basedir, basename)
-        else:
-            self.clone_path_name = clone_path_name
+        basedir = repo_basedir or self.tempdir
+        basename = repo_basename or os.path.basename(repo_url)
+        self.clone_path_name = os.path.join(basedir, basename)
 
         super().__init__()
 

@@ -1,9 +1,0 @@
-gitdb==4.0.2
-gitdb2==4.0.2
-GitPython==3.0.6
-lizard==1.17.3
-PyDriller==1.12
-pytz==2019.3
-smmap==3.0.1
-truffleHog==2.1.11
-truffleHogRegexes==0.0.7

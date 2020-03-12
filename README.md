@@ -11,67 +11,59 @@ done
 ```
 
 ## examples
+### local usage
+`./cli/trufflehonk` is intended for use on your local machine
 ```bash
 python3 -m venv /tmp/epicgamermoment
 source /tmp/epicgamermoment/bin/activate
 pip install -e .
-trufflemog scan cqsd --repos test,trufflehonk
+trufflehonk scan cqsd --repos test,trufflehonk
 ```
 
 for all repos in an org/user account
 ```bash
 # github limitation: you have to spec whether you're looking for a user or an org
-trufflemog scan cqsd --user
-trufflemog scan wpengine
+trufflehonk scan cqsd --user
+trufflehonk scan wpengine
 ```
 
-consume off a queue why not `sqs -> trufflehog + pydriller -> s3`
-Prerequisites: SQS queue and S3 bucket (see `./terraform/`)
+### consuming from a queue
+`./cli/trufflehonk-worker` is also usable locally, but it provides a lot of
+additional (explicit) configuration that makes it suitable for use as (e.g.)
+a Docker entrypoit in (say) a worker pool. For example:
+
 ```bash
-for msg in $(github list-repos user cqsd); do
+queue_url='https://sqs.us-west-2.amazonaws.com/012345678901/trufflehonk-jobs-01'
+for msg in $(sc github list-repos users cqsd); do
     aws sqs send-message \
-        --queue-url "${QUEUE_URL}" \
-        --message-body="$msg"
+        --queue-url=$queue_url \
+        --message-body=" https://github.com/cqsd/$msg"  # space? do you know why? :/
 done
 
-env TRUFFLEHONK_QUEUE_SQS_URL="${QUEUE_URL}" \
-    TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME="${BUCKET_NAME}" \
-    python3 examples/example-sqs.py
-aws s3 ls --recursive "s3://${BUCKET_NAME}"
+./cli/trufflehonk-worker scan \
+    --queue=from=sqs,queue_url=https://sqs.us-west-2.amazonaws.com/012345678901/trufflehonk-jobs-01 \
+    --output=to=stdout,format=human \
+    --output=to=s3,format=json,bucket=trufflehonk-example
 ```
+will consume git urls off of the SQS queue `https://sqs.us-west-2.amazonaws.com/012345678901/trufflehonk-jobs-01`, run truffleHog and PyDriller, then send the results
+ - to stdout in human-readable format
+ - to the S3 bucket `trufflehonk-example` in json format
 
-goobernetes example in `./manifests/` won't work because the Dockerfile hasn't
-been updated in a while you can fix that yourself lmao
-```bash
-# this is broken right now you can fix it yourself lmfao
-docker build -t trufflehonk:v0.1.1 .
-# example schedules 5 workers
+### goobernetes
+you'll have to push the image and tweak the manifest a bit to use the right
+image tag
+```
+docker build -t gcr.io/example/trufflehonk:v0.1.1 .
+docker push gcr.io/example/trufflehonk:v0.1.1
+# example starts 5 workers
 kubectl apply -f manifests/sqs-job-example.yaml
 ```
-
-## section 3 title
-### queues
-|path|description|requirements|
-|-|-|-|
-|`trufflehonk.queues.stdin.StdinQueue`|read args from stdin||
-|`trufflehonk.queues.sqs.SqsQueue`|receive args from sqs|aws credentials and env `TRUFFLEHONK_QUEUE_SQS_URL`|
-
-### jobs
-|path|description|requirements|
-|-|-|-|
-|`trufflehonk.jobs.trufflehog.Trufflehog`|run trufflehog on a github repo|args: `org`, `repo`|
-|`trufflehonk.jobs.pydriller.PyDriller`|run pydriller on a github repo|args: `org`, `repo`|
-
-\* todo: generic git (there's no difference but i hardcoded a github base url)
-
-### outputs
-|path|description|requirements|
-|-|-|-|
-|`trufflehonk.outputs.stdout.StdoutOutput`|print output to stdout||
-|`trufflehonk.outputs.s3.S3Output`|save output to a given key in a bucket|aws credentials, env `TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME`, arg: `key`|
 
 ## docs
 lol?
 
-## TODO
-pass through the rest of the trufflehog options
+## todo
+(PRs welcome ie i will not do these)
+ - pass through the rest of the trufflehog options
+ - add timestamp or hash or something to job names
+ - refactor lol

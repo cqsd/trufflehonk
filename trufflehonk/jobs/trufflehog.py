@@ -1,3 +1,4 @@
+import os
 import json
 
 from trufflehonk.jobs.git import GitJob
@@ -8,6 +9,12 @@ class Trufflehog(GitJob):
     def __init__(self, *args, rules_file=None, **kwargs):
         self.rules_file = rules_file
         super().__init__(*args, **kwargs)
+
+    # FIXME
+    @property
+    def name(self):
+        # yeah, you wouldn't ever supply invalid inputs would you?
+        return os.path.join('trufflehog', self.repo_url.split('://')[1])
 
     def run(self):
         args = [

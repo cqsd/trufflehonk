@@ -2,3 +2,7 @@ terraform
 __pycache__
 *pyc
 .git
+Dockerfile
+.dockerignore
+README.md
+# i know i'm doing this wron gjust fuck off there's a good reason

@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+import sys
+import tempfile
+
+from trufflehonk import queues, outputs
+from trufflehonk.jobs import trufflehog, pydriller
+
+
+QUEUES = {
+    'sqs': queues.SqsQueue,
+    'stdin': queues.StdinQueue,
+    '-': queues.StdinQueue,
+}
+
+OUTPUTTERS = {
+    's3': outputs.S3Output,
+    'stdout': outputs.StdoutOutput,
+    '-': outputs.StdoutOutput,
+}
+
+
+def honk_git(repo_url, outputters, clone_dir=None):
+    tempdir = None
+    if not clone_dir:
+        tempdir = tempfile.TemporaryDirectory()
+        clone_dir = tempdir.name
+
+    tf = trufflehog.Trufflehog(repo_url, repo_basedir=clone_dir)
+    pd = pydriller.PyDriller(repo_url, repo_basedir=clone_dir)
+    print(tf.name)
+    print(pd.name)
+
+    print(f'processing {repo_url}', file=sys.stderr)
+
+    tf.run()
+    pd.run()
+
+    # TODO: async output
+    for outputter in outputters:
+        outputter.output(tf)
+        outputter.output(pd)
+
+
+def honk_git_cmd(args):
+    # initialize the queue
+    # loop over repo urls from the queue
+    repo_url = f'https://github.com/'
+    outputters = []
+    for output in args.output:
+        output_to = output.pop('to')
+        outputter = OUTPUTTERS[output_to]
+        outputters.append(outputter(**output))
+
+    queue_from = args.queue.pop('from')
+    queue = QUEUES[queue_from](**args.queue)
+
+    for repo_url in queue:
+        honk_git(repo_url, outputters)
+
+
+def comma_kv(s):
+    '''parse 'a=1,b=2,c=3' into { a: 1, b: 2, c: 3 }.'''
+    return {
+        k: v for k, v in
+        [kv.split('=') for kv in s.split(',')]
+    }
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser('trufflehonk-worker')
+    parser.set_defaults(func=None)
+
+    subparsers = parser.add_subparsers(title='subcommands')
+
+    honk_subparser = subparsers.add_parser('scan')
+    honk_subparser.add_argument(
+        '--queue',
+        required=True,
+        help='Queue configuration. example: --queue=from=sqs,queue_url=https://...',
+        type=comma_kv)
+    honk_subparser.add_argument(
+        '--clone-dir',
+        help='Basedir to clone into',
+        default=None)
+    honk_subparser.add_argument(
+        '--output',
+        help='Output configuration. example: --output=to=stdout,format=human. May be provided multiple times.',
+        action='append',
+        type=comma_kv)
+    honk_subparser.set_defaults(func=honk_git_cmd)
+
+    args = parser.parse_args()
+
+    if args.func:
+        args.func(args)
+    else:
+        parser.print_usage()

@@ -1,9 +1,17 @@
+import os
+
 from pydriller import RepositoryMining
 
 from trufflehonk.jobs.git import GitJob
 
 
 class PyDriller(GitJob):
+    # FIXME
+    @property
+    def name(self):
+        # yeah, you wouldn't ever supply invalid inputs would you?
+        return os.path.join('pydriller', self.repo_url.split('://')[1])
+
     def run(self):
         repo = RepositoryMining(self.repo_path)
         authors = dict()

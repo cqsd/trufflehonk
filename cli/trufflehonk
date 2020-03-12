@@ -7,16 +7,16 @@ from trufflehonk.jobs import trufflehog, pydriller
 from trufflehonk.utils import github_org_repos, update_dict_sets
 
 
-def honk_github(org, user=False, clone_path=None, repos=None):
+def honk_github(org, repos=None, clone_dir=None, user=False):
     secrets = []
     author_emails = dict()
     tempdir = None
 
-    if not clone_path:
+    if not clone_dir:
         tempdir = tempfile.TemporaryDirectory()
         tempdir.name
         print(f'cloning repos into temporary directory {tempdir.name}')
-        clone_path = tempdir.name
+        clone_dir = tempdir.name
 
     if not repos:
         repos = github_org_repos(org, user=True)
@@ -24,10 +24,10 @@ def honk_github(org, user=False, clone_path=None, repos=None):
     for repo in repos:
         try:
             repo_url = f'https://github.com/{org}/{repo}'
-            clone_path = os.path.join(clone_path, org, repo)
+            clone_dir = os.path.join(clone_dir, org, repo)
 
-            tf = trufflehog.Trufflehog(repo_url, clone_path)
-            pd = pydriller.PyDriller(repo_url, clone_path)
+            tf = trufflehog.Trufflehog(repo_url, clone_dir)
+            pd = pydriller.PyDriller(repo_url, clone_dir)
 
             print(f'processing {repo_url}', file=sys.stderr)
 
@@ -51,7 +51,7 @@ def honk_github(org, user=False, clone_path=None, repos=None):
 
 
 def honk_github_cmd(args):
-    honk_github(args.org, args.user, args.clone_path, args.repos)
+    honk_github(args.org, args.repos, args.clone_dir, args.user)
 
 
 def commastring(s):
@@ -70,7 +70,8 @@ if __name__ == '__main__':
     honk_subparser.add_argument('org', metavar='NAME', help='name of org or user')
     honk_subparser.add_argument('--repos', help='comma-separated list of repos', type=commastring, default=None)
     honk_subparser.add_argument('--user', help='set if the username belongs to a user (github api limitation)', action='store_true', default=False)
-    honk_subparser.add_argument('--clone-path', help='basedir to clone into', default=None)
+    honk_subparser.add_argument('--clone-dir', help='basedir to clone into', default=None)
+    honk_subparser.add_argument('--no-cumulative', help='don\'t print a cumulative report (output each repo separately)', default=False)
     honk_subparser.set_defaults(func=honk_github_cmd)
 
     args = parser.parse_args()
