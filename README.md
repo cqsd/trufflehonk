@@ -1,4 +1,14 @@
 > i was asked to automate trufflehog (sort of) so here,
+```bash
+# requires: jq, git, truffleHog, curl
+kind=users
+org=cqsd
+for repo in $(curl -Ls "https://api.github.com/$kind/$org/repos?per_page=200" \
+    | jq '.[].name' \
+    | tr -d \"); do
+    truffleHog --entropy=false --regex https://github.com/$org/${repo}.git
+done
+```
 
 ## examples
 ```bash
