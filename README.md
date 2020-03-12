@@ -42,6 +42,7 @@ aws s3 ls --recursive "s3://${BUCKET_NAME}"
 
 goobernetes example in `./manifests/`
 ```bash
+# this is broken right now you can fix it yourself lmfao
 docker build -t trufflehonk:v0.1.1 .
 # example schedules 5 workers
 kubectl apply -f manifests/sqs-job-example.yaml
