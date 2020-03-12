@@ -14,7 +14,7 @@ class Trufflehog(GitJob):
     @property
     def name(self):
         # yeah, you wouldn't ever supply invalid inputs would you?
-        return os.path.join('trufflehog', self.repo_url.split('://')[1])
+        return os.path.join(self.repo_url.split('://')[1], 'trufflehog')
 
     def run(self):
         args = [
