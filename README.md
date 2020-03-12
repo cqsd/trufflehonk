@@ -1,4 +1,6 @@
-i was asked to automate trufflehog (sort of) so here
+> i was asked to automate trufflehog (sort of) so here, in the long tradition
+> of "security" "practitioners" repackaging more competent people's work for
+> clout using more code than necessary,...
 
 ## examples
 ```bash
@@ -59,11 +61,6 @@ kubectl apply -f manifests/sqs-job-example.yaml
 |-|-|-|
 |`trufflehonk.outputs.stdout.StdoutOutput`|print output to stdout||
 |`trufflehonk.outputs.s3.S3Output`|save output to a given key in a bucket|aws credentials, env `TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME`, arg: `key`|
-
-## fyi
-there's trufflehog and pydriller example jobs just to make this useful out of
-the box but this is really intended to be used as a generic job worker library
-i should probably rename the project
 
 ## docs
 lol?
