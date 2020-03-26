@@ -35,9 +35,10 @@ a Docker entrypoit in (say) a worker pool. For example:
 ```bash
 queue_url='https://sqs.us-west-2.amazonaws.com/012345678901/trufflehonk-jobs-01'
 for msg in $(sc github list-repos users cqsd); do
+    # it reads urls straight off the queue, as you can see
     aws sqs send-message \
         --queue-url=$queue_url \
-        --message-body=" https://github.com/cqsd/$msg"  # space? do you know why? :/
+        --message-body="https://github.com/cqsd/$msg"  # FYI set cli_follow_urlparam = false in ~/.aws/config or you're in for a fucking surprise
 done
 
 ./cli/trufflehonk-worker scan \

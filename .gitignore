@@ -1,6 +1,4 @@
 __pycache__
 *swp
 *pyc
-.terraform
-terraform.tfvars
-terraform.tfstate
+terraform
