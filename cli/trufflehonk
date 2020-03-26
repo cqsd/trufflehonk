@@ -15,7 +15,10 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
     if not clone_dir:
         tempdir = tempfile.TemporaryDirectory()
         tempdir.name
-        print(f'cloning repos into temporary directory {tempdir.name}')
+        print(
+            f'cloning repos into temporary directory {tempdir.name}',
+            file=sys.stderr
+        )
         clone_dir = tempdir.name
 
     if not repos:
@@ -42,11 +45,12 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
             # I don't know what exceptions can happen tbh
             print(e)
 
-    print('secrets')
-    print('============================')
+    print('============ repos scanned ==============')
+    print('\n'.join([f'{org}/{repo}' for repo in repos]))
+    print()
+    print('------------ secrets --------------------')
     print(trufflehog.output_human(secrets))
-    print('commit authors')
-    print('============================')
+    print('------------ authors --------------------')
     print(pydriller.output_human(author_emails))
 
 

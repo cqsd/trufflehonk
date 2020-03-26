@@ -11,13 +11,12 @@ metadata:
 apiVersion: v1
 kind: Secret
 data:
-  AWS_ACCESS_KEY_ID: base64-key-id-here
-  AWS_SECRET_ACCESS_KEY: base64-key-here
-  # us-west-2
-  AWS_DEFAULT_REGION: dXMtd2VzdC0y
-  # these aren't actually secret but we're already here
-  TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME: base64-bucket-name-here
-  TRUFFLEHONK_QUEUE_SQS_URL: base64-sqs-queue-url-here
+  # figure it out yourself
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
+  AWS_DEFAULT_REGION:
+  TRUFFLEHONK_OUTPUT_S3_BUCKET_NAME:
+  TRUFFLEHONK_QUEUE_SQS_URL:
 metadata:
   name: trufflehonk-job-secret
   namespace: trufflehonk
@@ -33,6 +32,8 @@ metadata:
     app.kubernetes.io/part-of: trufflehonk
 spec:
   parallelism: 5
+  # keep finished jobs for an hour before deleting
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
       name: trufflehonk-job

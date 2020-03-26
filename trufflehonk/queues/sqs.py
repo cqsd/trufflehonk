@@ -4,30 +4,34 @@ import boto3
 
 from trufflehonk.queues.base import BaseQueue
 
-sqs = boto3.client('sqs')
-
 
 class SqsQueue(BaseQueue):
     def __init__(self, queue_url=None):
+        self.client = boto3.client('sqs')
         self.queue_url = queue_url or os.environ['TRUFFLEHONK_QUEUE_SQS_URL']
 
-    def pop(self, n=1, visibility_timeout=30, wait_timeout=5):
-        response = sqs.receive_message(
+    # TODO
+    def push(self, message):
+        return self.client.send_message(
             QueueUrl=self.queue_url,
-            MaxNumberOfMessages=n,
+            MessageBody=message
+        )
+
+    def pop(self, visibility_timeout=30, wait_timeout=5):
+        response = self.client.receive_message(
+            QueueUrl=self.queue_url,
+            MaxNumberOfMessages=1,
             VisibilityTimeout=visibility_timeout,
             WaitTimeSeconds=wait_timeout
         )
 
         if response and 'Messages' in response:
-            message = response['Messages'][0]  # ? don't remember why index 0
-            sqs.delete_message(
+            # only fetch 1 at a time, so hardcode index 0
+            message = response['Messages'][0]
+            self.client.delete_message(
                 QueueUrl=self.queue_url,
                 ReceiptHandle=message['ReceiptHandle']
             )
-            # why .strip? try queueing a url using the aws cli and you'll see why
-            # (why does the aws cli try to fetch the message body if it's a url?)
-            # (hack around this in testing by adding a space to the start)
-            return message['Body'].strip()  # ['Message']
+            return message['Body']
         else:
             return None
