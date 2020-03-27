@@ -18,17 +18,15 @@ def update_dict_sets(d1, d2):
     '''Given two dicts d1, d2 mapping keys to sets, extend the sets in d1 using
     the sets in d2. Keys present in d2 but missing in d1 are added to d1.
 
-    Warning: d1 is mutated, d2 is not.
+    d1 is mutated, d2 is not.
 
-    Example:
-
-        >>> d1 = {'a': {1, 2}}
-        >>> d2 = {'a': {1, 3}, 'b': {1}}
-        >>> update_dict_sets(d1, d2)
-        >>> d1
-        {'a': {1, 2, 3}, 'b': {1}}
-        >>> d2
-        {'a': {1, 3}, 'b': {1}}
+    >>> d1 = {'a': {1, 2}}
+    >>> d2 = {'a': {1, 3}, 'b': {1}}
+    >>> update_dict_sets(d1, d2)
+    >>> d1
+    {'a': {1, 2, 3}, 'b': {1}}
+    >>> d2
+    {'a': {1, 3}, 'b': {1}}
     '''
     for k, v in d2.items():
         if k in d1:

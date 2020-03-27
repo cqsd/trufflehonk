@@ -1,11 +1,12 @@
 import subprocess
 
 
-def exec_timeout(exec_args, timeout=600):
-    stdout, _ = subprocess.Popen(
+def exec_timeout(exec_args, timeout=600, **popen_kwargs):
+    child = subprocess.Popen(
         exec_args,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL
-    ).communicate(timeout=timeout)
+        stderr=subprocess.DEVNULL,
+        **popen_kwargs
+    )
 
-    return stdout
+    return *child.communicate(timeout=timeout), child.returncode

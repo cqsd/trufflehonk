@@ -1,69 +1,32 @@
 #!/usr/bin/env python3
+import os
 import sys
-import tempfile
 
-from trufflehonk import queues, outputs
+import requests
+
+from trufflehonk import queues
 from trufflehonk.jobs import trufflehog, pydriller
-
-
-QUEUES = {
-    'sqs': queues.SqsQueue,
-    'stdin': queues.StdinQueue,
-    '-': queues.StdinQueue,
-}
-
-OUTPUTTERS = {
-    's3': outputs.S3Output,
-    'stdout': outputs.StdoutOutput,
-    '-': outputs.StdoutOutput,
-}
-
-
-def honk_git(repo_url, outputters, clone_dir=None):
-    tempdir = None
-    if not clone_dir:
-        tempdir = tempfile.TemporaryDirectory()
-        clone_dir = tempdir.name
-
-    tf = trufflehog.Trufflehog(repo_url, repo_basedir=clone_dir)
-    pd = pydriller.PyDriller(repo_url, repo_basedir=clone_dir)
-    print(tf.name)
-    print(pd.name)
-
-    print(f'processing {repo_url}', file=sys.stderr)
-
-    tf.run()
-    pd.run()
-
-    # TODO: async output
-    for outputter in outputters:
-        outputter.output(tf)
-        outputter.output(pd)
+from trufflehonk.utils import git, s3_files
 
 
 def honk_git_cmd(args):
-    # initialize the queue
-    # loop over repo urls from the queue
-    repo_url = f'https://github.com/'
-    outputters = []
-    for output in args.output:
-        output_to = output.pop('to')
-        outputter = OUTPUTTERS[output_to]
-        outputters.append(outputter(**output))
-
-    queue_from = args.queue.pop('from')
-    queue = QUEUES[queue_from](**args.queue)
-
-    for repo_url in queue:
-        honk_git(repo_url, outputters)
+    for repo_url in queues.SqsQueue(args.sqs.queue_url):
+        secrets, authors = honk_git(repo_url, args.s3_files_bucket)
+        post_webhook(args.webhook_url, 'secret', repo_url, secrets)
+        post_webhook(args.webhook_url, 'email', repo_url, authors)
 
 
-def comma_kv(s):
-    '''parse 'a=1,b=2,c=3' into { a: 1, b: 2, c: 3 }.'''
-    return {
-        k: v for k, v in
-        [kv.split('=') for kv in s.split(',')]
-    }
+def honk_git(repo_url, s3_files_bucket):
+    print(f'processing {repo_url}', file=sys.stderr)
+    with s3_files.S3Dir(s3_files_bucket, git.to_gopath(repo_url)) as repo_path:
+        secrets = trufflehog.find_secrets(repo_url, repo_path)
+        authors = pydriller.find_authors(repo_url, repo_path)
+    return secrets, authors
+
+
+# TODO
+def post_webhook(url, kind, source, data):
+    requests.post(url, json={'kind': kind, 'source': source, data: data})
 
 
 if __name__ == '__main__':
@@ -74,21 +37,14 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers(title='subcommands')
 
-    honk_subparser = subparsers.add_parser('scan')
-    honk_subparser.add_argument(
-        '--queue',
-        required=True,
-        help='Queue configuration. example: --queue=from=sqs,queue_url=https://...',
-        type=comma_kv)
-    honk_subparser.add_argument(
-        '--clone-dir',
-        help='Basedir to clone into',
-        default=None)
-    honk_subparser.add_argument(
-        '--output',
-        help='Output configuration. example: --output=to=stdout,format=human. May be provided multiple times.',
-        action='append',
-        type=comma_kv)
+    sqs_queue_url = os.getenv('TRUFFLEHONK_QUEUE_SQS_URL')
+    s3_files_bucket = os.getenv('TRUFFLEHONK_S3_FILES_BUCKET_NAME')
+    webhook_url = os.getenv('TRUFFLEHONK_WEBHOOK_URL')
+
+    honk_subparser = subparsers.add_parser('start')
+    honk_subparser.add_argument('--sqs-queue-url', default=sqs_queue_url)
+    honk_subparser.add_argument('--s3-files-bucket', default=s3_files_bucket)
+    honk_subparser.add_argument('--webhook-url', default=webhook_url)
     honk_subparser.set_defaults(func=honk_git_cmd)
 
     args = parser.parse_args()

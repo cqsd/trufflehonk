@@ -1,5 +1,3 @@
-# WARNING: THIS SHIT IN THIS DIR IS VERY DANGEROUS TO RUN ON YOUR
-# LOCAL MACHINE LMFAOOOOO
 import logging
 import tarfile
 import tempfile
@@ -68,29 +66,32 @@ class S3Dir:
     load on external VCS servers. Immediate consistency and race conditions
     don't really matter.
 
-    :bucket name of bucket
-    :path dirname to open
-    :s3_suffix defaults to .tar.gz, gets appended to :path to form the key to
-    fetch
-    :key specific key to open. overrides the :path option
+    :bucket str name of bucket
+    :path str dirname to open
+    :key str specific key to fetch. overrides the :path option
+    :restore (True) attempt to restore the directory from s3
+    :temp (True) delete the directory on exiting the context
+    :save (True) tar and save the directory to s3 on exiting the context
     '''
-    def __init__(self, bucket, path=None, key=None, temp=True):
+    def __init__(self, bucket=None, path=None, key=None, restore=True, save=True, temp=True):
         self.bucket = bucket
-        assert path or key  # yeah, yeah
         self.key = key if key else path + '.tar.gz'
         self.temp = temp
 
-    def __enter__(self):
+    def __enter__(self) -> str:
         self.tempdir = tempfile.TemporaryDirectory()
-        try:
-            return restore_dir_from_s3(self.bucket, self.key, self.tempdir.name)
-        except ClientError as e:
-            if e.response['Error']['Code'] == '404':
-                logging.info('First time using this dir!')
-                return self.tempdir.name
-            raise
+        if self.restore:
+            try:
+                return restore_dir_from_s3(self.bucket, self.key, self.tempdir.name)
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    logging.info('First time using this dir!')
+                else:
+                    raise
+        return self.tempdir.name
 
     def __exit__(self, *_):
-        save_dir_to_s3(self.bucket, self.key, self.tempdir.name)
+        if self.save:
+            save_dir_to_s3(self.bucket, self.key, self.tempdir.name)
         if self.temp:
             self.tempdir.cleanup()

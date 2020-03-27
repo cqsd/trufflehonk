@@ -4,14 +4,16 @@ import sys
 import tempfile
 
 from trufflehonk.jobs import trufflehog, pydriller
-from trufflehonk.utils import data, github
+from trufflehonk.utils import data, git, github
 
 
-def honk_github(org, repos=None, clone_dir=None, user=False):
+def honk_github(org, repos=None, clone_dir=None, user=False, rules_file=None):
     secrets = []
-    author_emails = dict()
-    tempdir = None
+    authors = dict()
 
+    # we want to clone all the repos into one dir
+    # if clone_dir is not specified, use a temporary diwectowy
+    tempdir = None
     if not clone_dir:
         tempdir = tempfile.TemporaryDirectory()
         tempdir.name
@@ -22,28 +24,23 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
         clone_dir = tempdir.name
 
     if not repos:
-        repos = github.get_org_repos(org, user=True)
+        repos = github.get_org_repos(org, user)
 
     for repo in repos:
         try:
             repo_url = f'https://github.com/{org}/{repo}'
-            clone_dir = os.path.join(clone_dir, org, repo)
-
-            tf = trufflehog.Trufflehog(repo_url, clone_dir)
-            pd = pydriller.PyDriller(repo_url, clone_dir)
+            repo_path = os.path.join(clone_dir, git.to_gopath(repo_url))
+            git.clone(repo_url, repo_path)
 
             print(f'processing {repo_url}', file=sys.stderr)
 
-            tf.run()
-            pd.run()
+            _secrets = trufflehog.find_secrets(repo_path, repo_path, rules_file)
+            _authors = pydriller.find_authors(repo_path)
 
-            secrets += tf.output
-            data.update_dict_sets(author_emails, pd.output)
+            secrets += _secrets
+            data.update_dict_sets(authors, _authors)
         except KeyboardInterrupt:
             break
-        except Exception as e:
-            # I don't know what exceptions can happen tbh
-            print(e)
 
     print('============ repos scanned ==============')
     print('\n'.join([f'{org}/{repo}' for repo in repos]))
@@ -51,11 +48,11 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
     print('------------ secrets --------------------')
     print(trufflehog.output_human(secrets))
     print('------------ authors --------------------')
-    print(pydriller.output_human(author_emails))
+    print(pydriller.output_human(authors))
 
 
 def honk_github_cmd(args):
-    honk_github(args.org, args.repos, args.clone_dir, args.user)
+    honk_github(args.org, args.repos, args.clone_dir, args.user, args.rules_file)
 
 
 def commastring(s):
@@ -75,6 +72,7 @@ if __name__ == '__main__':
     honk_subparser.add_argument('--repos', help='comma-separated list of repos', type=commastring, default=None)
     honk_subparser.add_argument('--user', help='set if the username belongs to a user (github api limitation)', action='store_true', default=False)
     honk_subparser.add_argument('--clone-dir', help='basedir to clone into', default=None)
+    honk_subparser.add_argument('--rules-file', help='trufflehog rules file', default=None)
     honk_subparser.add_argument('--no-cumulative', help='don\'t print a cumulative report (output each repo separately)', default=False)
     honk_subparser.set_defaults(func=honk_github_cmd)
 
