@@ -1,8 +1,7 @@
-import os
 import json
 
 from trufflehonk.jobs.git import GitJob
-from trufflehonk.utils import exec_timeout
+from trufflehonk.utils import shell
 
 
 class Trufflehog(GitJob):
@@ -10,20 +9,16 @@ class Trufflehog(GitJob):
         self.rules_file = rules_file
         super().__init__(*args, **kwargs)
 
-    # FIXME
-    @property
-    def name(self):
-        # yeah, you wouldn't ever supply invalid inputs would you?
-        return os.path.join(self.repo_url.split('://')[1], 'trufflehog')
-
     def run(self):
+        # easier than figuring out how to import trufflehog as a library, lol
         args = [
+            *(['--rules', self.rules_file] if self.rules_file else []),
             '--regex',
             '--entropy', 'false',
             '--json',
             self.repo_path
         ]
-        raw_output = exec_timeout(['trufflehog', *args])
+        raw_output = shell.exec_timeout(['trufflehog', *args])
 
         acc = []
         for line in raw_output.splitlines():

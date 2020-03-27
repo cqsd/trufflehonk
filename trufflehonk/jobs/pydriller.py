@@ -1,25 +1,16 @@
-import os
-
 from pydriller import RepositoryMining
 
 from trufflehonk.jobs.git import GitJob
 
 
 class PyDriller(GitJob):
-    # FIXME
-    @property
-    def name(self):
-        # yeah, you wouldn't ever supply invalid inputs would you?
-        return os.path.join(self.repo_url.split('://')[1], 'pydriller')
-
     def run(self):
         repo = RepositoryMining(self.repo_path)
         authors = dict()
         for commit in repo.traverse_commits():
             ae = commit.author.email
             if not ae:
-                # this can happen, as it happens ;)
-                # sometimes it's an empty string, sometimes it's just None
+                # can be an empty string, sometimes it's just None
                 ae = '*no-email*'
             an = commit.author.name
             if ae not in authors:

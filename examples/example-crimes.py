@@ -1,11 +1,11 @@
 import sys
 
 from trufflehonk.jobs import trufflehog, pydriller
-from trufflehonk.utils import github_org_repos, update_dict_sets
+from trufflehonk.utils import data, github
 
 
 org = 'cqsd'
-repos = github_org_repos(org, user=True)
+repos = github.get_org_repos(org, user=True)
 
 
 secrets = []
@@ -26,7 +26,7 @@ for repo in repos:
         pd.run()
 
         secrets += tf.output
-        update_dict_sets(author_emails, pd.output)
+        data.update_dict_sets(author_emails, pd.output)
     except KeyboardInterrupt:
         break
     except Exception as e:

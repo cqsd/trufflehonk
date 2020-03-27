@@ -4,7 +4,7 @@ import sys
 import tempfile
 
 from trufflehonk.jobs import trufflehog, pydriller
-from trufflehonk.utils import github_org_repos, update_dict_sets
+from trufflehonk.utils import data, github
 
 
 def honk_github(org, repos=None, clone_dir=None, user=False):
@@ -22,7 +22,7 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
         clone_dir = tempdir.name
 
     if not repos:
-        repos = github_org_repos(org, user=True)
+        repos = github.get_org_repos(org, user=True)
 
     for repo in repos:
         try:
@@ -38,7 +38,7 @@ def honk_github(org, repos=None, clone_dir=None, user=False):
             pd.run()
 
             secrets += tf.output
-            update_dict_sets(author_emails, pd.output)
+            data.update_dict_sets(author_emails, pd.output)
         except KeyboardInterrupt:
             break
         except Exception as e:
