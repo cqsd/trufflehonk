@@ -1,4 +1,5 @@
 import collections
+import typing as t
 
 
 # lol https://stackoverflow.com/posts/6027615/revisions
@@ -33,3 +34,25 @@ def update_dict_sets(d1, d2):
             d1[k].update(v)
         else:
             d1[k] = set(v)
+
+
+def get_keys_as(d: dict, *keys: t.Union[t.Hashable, t.Tuple[t.Hashable]]) -> dict:
+    '''Extract the keys from d and return a new dict with the keys optionally
+    renamed.
+
+    Example:
+        >>> d = {'a': 1, 'b': 2}
+        >>> get_keys_as(d, 'a', ('b', 'c'))
+        {'a': 1, 'c': 2}
+
+    :d dict to extract from
+    :keys *args of either bare keys to extract or tuples of (old_key, new_key)
+    '''
+    acc = {}
+    for _key in keys:
+        if isinstance(_key, tuple):
+            key, new_key = _key
+            acc[new_key] = d[key]
+        else:
+            acc[_key] = d[_key]
+    return acc

@@ -6,6 +6,8 @@ import boto3
 
 from botocore.exceptions import ClientError
 
+from trufflehonk.utils import git  # XXX
+
 
 s3 = boto3.client('s3')
 
@@ -76,22 +78,40 @@ class S3Dir:
     def __init__(self, bucket=None, path=None, key=None, restore=True, save=True, temp=True):
         self.bucket = bucket
         self.key = key if key else path + '.tar.gz'
+        self.save = save
         self.temp = temp
-
-    def __enter__(self) -> str:
         self.tempdir = tempfile.TemporaryDirectory()
-        if self.restore:
-            try:
-                return restore_dir_from_s3(self.bucket, self.key, self.tempdir.name)
-            except ClientError as e:
-                if e.response['Error']['Code'] == '404':
-                    logging.info('First time using this dir!')
-                else:
-                    raise
-        return self.tempdir.name
+        self.path = self.tempdir.name
+        if restore:
+            self.restore()
 
-    def __exit__(self, *_):
+    def restore(self):
+        try:
+            restore_dir_from_s3(self.bucket, self.key, self.tempdir.name)
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                logging.info('First time using this dir!')
+            else:
+                raise
+
+    def cleanup(self):
         if self.save:
             save_dir_to_s3(self.bucket, self.key, self.tempdir.name)
         if self.temp:
             self.tempdir.cleanup()
+
+    def __enter__(self) -> str:
+        return self.path
+
+    def __exit__(self, *_):
+        self.cleanup()
+
+
+class S3GitRepo(S3Dir):
+    def __init__(self, repo_url, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.repo_url = repo_url
+
+        if not git.is_repo(self.path):
+            git.clone(repo_url, self.path)
+        git.update(self.path)

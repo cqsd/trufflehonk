@@ -1,32 +1,72 @@
 #!/usr/bin/env python3
 import os
+import uuid
 import sys
+
+from datetime import datetime
 
 import requests
 
-from trufflehonk import queues
+from trufflehonk import queues  # TODO strangle
 from trufflehonk.jobs import trufflehog, pydriller
 from trufflehonk.utils import git, s3_files
 
 
-def honk_git_cmd(args):
-    for repo_url in queues.SqsQueue(args.sqs.queue_url):
-        secrets, authors = honk_git(repo_url, args.s3_files_bucket)
-        post_webhook(args.webhook_url, 'secret', repo_url, secrets)
-        post_webhook(args.webhook_url, 'email', repo_url, authors)
+# "temporary"
+class MESSAGE_KINDS:
+    TRUFFLEHOG = 'git-regex'
+    PYDRILLER = 'email'
 
 
-def honk_git(repo_url, s3_files_bucket):
-    print(f'processing {repo_url}', file=sys.stderr)
-    with s3_files.S3Dir(s3_files_bucket, git.to_gopath(repo_url)) as repo_path:
-        secrets = trufflehog.find_secrets(repo_url, repo_path)
-        authors = pydriller.find_authors(repo_url, repo_path)
+def publish_nsq(nsq_http_host, topic, kind, message):
+    '''man please fix this
+
+    :kind what kind of finding (email, git-regex)
+    '''
+    # whatever it doesn't matter
+    url = f'http://{nsq_http_host}/pub'
+    now = round(datetime.utcnow().timestamp() * 1000)
+    requests.post(
+        url,
+        params={'topic': topic},
+        json={
+            'id': str(uuid.uuid4()),
+            'timestamp': now,  # ms ts
+            'kind': kind,
+            'message': message,
+        }
+    )
+
+
+def publish_nsq_bulk(nsq_http_host, topic, kind, messages):
+    for message in messages:
+        publish_nsq(nsq_http_host, topic, kind, messages)
+
+
+def honk_git(repo_url, repo_path):
+    # TODO: repo_url in trufflehog job is only used for enriching output, make
+    # it optional
+    secrets = trufflehog.find_secrets(repo_url, repo_path, args.rules_file)
+    authors = pydriller.find_authors(repo_path)
     return secrets, authors
 
 
-# TODO
-def post_webhook(url, kind, source, data):
-    requests.post(url, json={'kind': kind, 'source': source, data: data})
+def honk_git_cmd(args):
+    topic = args.nsq_topic
+    nsq_http_host = args.nsq_http_host
+    for repo_url in queues.SqsQueue(args.sqs_queue_url):
+        print(f'processing {repo_url}', file=sys.stderr)
+        # TODO this block should be async cause it's all reads and isolated
+        # writes, and for a lot of cases network is a big chunk of the runtime
+        with s3_files.S3GitRepo(repo_url,
+                                bucket=args.s3_files_bucket,
+                                path=git.to_gopath(repo_url),
+                                restore=(not args.skip_restore),
+                                save=(not args.skip_save),
+                                temp=False) as repo_path:
+            secrets, authors = honk_git(repo_url, repo_path)
+            publish_nsq_bulk(nsq_http_host, topic, MESSAGE_KINDS.TRUFFLEHOG, secrets)
+            publish_nsq_bulk(nsq_http_host, topic, MESSAGE_KINDS.PYDRILLER, authors)
 
 
 if __name__ == '__main__':
@@ -37,14 +77,35 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers(title='subcommands')
 
-    sqs_queue_url = os.getenv('TRUFFLEHONK_QUEUE_SQS_URL')
-    s3_files_bucket = os.getenv('TRUFFLEHONK_S3_FILES_BUCKET_NAME')
-    webhook_url = os.getenv('TRUFFLEHONK_WEBHOOK_URL')
-
     honk_subparser = subparsers.add_parser('start')
-    honk_subparser.add_argument('--sqs-queue-url', default=sqs_queue_url)
-    honk_subparser.add_argument('--s3-files-bucket', default=s3_files_bucket)
-    honk_subparser.add_argument('--webhook-url', default=webhook_url)
+    honk_subparser.add_argument('--rules-file', type=str, default=None)
+    honk_subparser.add_argument(
+        '--sqs-queue-url',
+        default=str(os.getenv('TRUFFLEHONK_QUEUE_SQS_URL')))
+    honk_subparser.add_argument(
+        '--s3-files-bucket',
+        default=str(os.getenv('TRUFFLEHONK_S3_FILES_BUCKET_NAME')))
+    honk_subparser.add_argument(
+        '--nsq-http-host',
+        default=os.getenv('TRUFFLEHONK_NSQ_HTTP_HOST', 'localhost:4151'))
+    honk_subparser.add_argument(
+        '--nsq-topic',
+        default=os.getenv('TRUFFLEHONK_NSQ_TOPIC', 'recon-findings'))
+    honk_subparser.add_argument(
+        '--skip-restore',
+        action='store_true',
+        default=False,
+        help='skip restoring from s3')
+    honk_subparser.add_argument(
+        '--skip-save',
+        action='store_true',
+        default=False,
+        help='skip saving to s3')
+    honk_subparser.add_argument(
+        '--skip-publish',
+        action='store_true',
+        default=False,
+        help='skip publish to nsq')
     honk_subparser.set_defaults(func=honk_git_cmd)
 
     args = parser.parse_args()

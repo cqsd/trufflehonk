@@ -34,7 +34,7 @@ def honk_github(org, repos=None, clone_dir=None, user=False, rules_file=None):
 
             print(f'processing {repo_url}', file=sys.stderr)
 
-            _secrets = trufflehog.find_secrets(repo_path, repo_path, rules_file)
+            _secrets = trufflehog.find_secrets(repo_path, repo_url, rules_file)
             _authors = pydriller.find_authors(repo_path)
 
             secrets += _secrets
@@ -46,9 +46,9 @@ def honk_github(org, repos=None, clone_dir=None, user=False, rules_file=None):
     print('\n'.join([f'{org}/{repo}' for repo in repos]))
     print()
     print('------------ secrets --------------------')
-    print(trufflehog.output_human(secrets))
+    print(trufflehog.to_human_string(secrets))
     print('------------ authors --------------------')
-    print(pydriller.output_human(authors))
+    print(pydriller.to_human_string(authors))
 
 
 def honk_github_cmd(args):

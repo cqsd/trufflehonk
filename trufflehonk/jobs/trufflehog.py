@@ -30,7 +30,7 @@ def find_secrets(repo_path, repo_url=None, rules_file=None):
     return secrets
 
 
-def output_human(secrets):
+def to_human_string(secrets):
     acc = ''
     fields = [
         'reason',
