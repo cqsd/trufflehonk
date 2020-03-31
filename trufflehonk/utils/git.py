@@ -9,14 +9,36 @@ def to_gopath(url):
 
     NB: this doesn't handle some (probably a lot of) things, notably redirects,
     or cnames or whatever. www.github.com is distinct from github.com, and
-    cqsd/test.git is distinct from cqsd/test. It also does not give a fuck about
-    your janky paths or whatever, cqsd//////test is distinct from cqsd/test
+    example/test.git is distinct from example/test. It also does not give a
+    fuck about your janky paths, example//////test is distinct from
+    example/test
     '''
     parsed = urlparse(url)
     # can't use os path join or urljoin here neither does what you want due to
-    # interpreting leading slashes in parsed.path in not-useful-for-this-case
-    # ways
+    # interpreting leading slashes in parsed.path in unproductive ways
     return parsed.netloc + parsed.path
+
+
+def repo_url_meta(url):
+    '''given a repo url like proto://github.com/user/repo, return
+    {'service': 'github.com',
+     'user': 'user',
+     'repo': 'repo'}
+     '''
+    parsed = urlparse(url)
+    try:
+        user, repo = parsed.path.strip('/').split('/')
+        return {
+            'service': 'github.com',
+            'user': user,
+            'repo': repo
+        }
+    except ValueError:
+        print(
+            'this is brittle as fuck and something broke also this is obviously'
+            ' functionally incorrect anyway so lmfao PRs welcome'
+        )
+        raise
 
 
 def is_repo(path):

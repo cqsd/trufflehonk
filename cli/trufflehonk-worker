@@ -18,7 +18,7 @@ class MESSAGE_KINDS:
     PYDRILLER = 'email'
 
 
-def publish_nsq(nsq_http_host, topic, kind, message):
+def publish_nsq(nsq_http_host, topic, kind, message, meta=None):
     '''man please fix this
 
     :kind what kind of finding (email, git-regex)
@@ -34,18 +34,17 @@ def publish_nsq(nsq_http_host, topic, kind, message):
             'timestamp': now,  # ms ts
             'kind': kind,
             'message': message,
+            **({'meta': meta} if meta else {})
         }
     )
 
 
-def publish_nsq_bulk(nsq_http_host, topic, kind, messages):
+def publish_nsq_bulk(nsq_http_host, topic, kind, messages, meta=None):
     for message in messages:
-        publish_nsq(nsq_http_host, topic, kind, messages)
+        publish_nsq(nsq_http_host, topic, kind, message, meta)
 
 
 def honk_git(repo_url, repo_path):
-    # TODO: repo_url in trufflehog job is only used for enriching output, make
-    # it optional
     secrets = trufflehog.find_secrets(repo_url, repo_path, args.rules_file)
     authors = pydriller.find_authors(repo_path)
     return secrets, authors
@@ -54,19 +53,28 @@ def honk_git(repo_url, repo_path):
 def honk_git_cmd(args):
     topic = args.nsq_topic
     nsq_http_host = args.nsq_http_host
+
     for repo_url in queues.SqsQueue(args.sqs_queue_url):
         print(f'processing {repo_url}', file=sys.stderr)
-        # TODO this block should be async cause it's all reads and isolated
-        # writes, and for a lot of cases network is a big chunk of the runtime
+
+        def _publish_bulk(kind, data):
+            publish_nsq_bulk(
+                nsq_http_host=nsq_http_host,
+                topic=topic,
+                kind=kind,
+                messages=data,
+                meta=git.repo_url_meta(repo_url)
+            )
+
         with s3_files.S3GitRepo(repo_url,
+                                update=(not args.skip_update),
                                 bucket=args.s3_files_bucket,
                                 path=git.to_gopath(repo_url),
                                 restore=(not args.skip_restore),
-                                save=(not args.skip_save),
-                                temp=False) as repo_path:
+                                save=(not args.skip_save)) as repo_path:
             secrets, authors = honk_git(repo_url, repo_path)
-            publish_nsq_bulk(nsq_http_host, topic, MESSAGE_KINDS.TRUFFLEHOG, secrets)
-            publish_nsq_bulk(nsq_http_host, topic, MESSAGE_KINDS.PYDRILLER, authors)
+            _publish_bulk(MESSAGE_KINDS.TRUFFLEHOG, secrets)
+            _publish_bulk(MESSAGE_KINDS.PYDRILLER, authors)
 
 
 if __name__ == '__main__':
@@ -96,6 +104,11 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='skip restoring from s3')
+    honk_subparser.add_argument(
+        '--skip-update',
+        action='store_true',
+        default=False,
+        help='skip git pull')
     honk_subparser.add_argument(
         '--skip-save',
         action='store_true',

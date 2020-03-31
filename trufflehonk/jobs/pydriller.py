@@ -16,7 +16,10 @@ def find_authors(repo_path):
             authors[ae].add(an)
 
     # Sets are not JSON serializable, convert to lists first
-    return {email: list(names) for email, names in authors.items()}
+    return [
+        {'email': email, 'names': list(names)}
+        for email, names in authors.items()
+    ]
 
 
 def to_human_string(authors):

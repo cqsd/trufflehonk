@@ -12,7 +12,7 @@ def find_secrets(repo_path, repo_url=None, rules_file=None):
         '--json',
         repo_path
     ]
-    raw_output, *_ = shell.exec_timeout(['truffleHog', *args])
+    raw_output, *_ = shell.exec_timeout(['trufflehog', *args])
 
     secrets = []
     for line in raw_output.splitlines():

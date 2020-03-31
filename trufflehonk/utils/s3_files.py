@@ -19,7 +19,7 @@ def restore_dir_from_s3(bucket, key, path):
     :key s3 object key. the object should be a gzipped tar archive
     :path path to dir to untar to
     '''
-    # 1: potential for untar vuln
+    # potential untar path vuln
     logging.info(f'restoring dir from s3://{bucket}/{key}')
     with tempfile.NamedTemporaryFile(suffix='tar.gz') as f:
         s3.download_fileobj(bucket, key, f)
@@ -108,10 +108,11 @@ class S3Dir:
 
 
 class S3GitRepo(S3Dir):
-    def __init__(self, repo_url, *args, **kwargs):
+    def __init__(self, repo_url, *args, update=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.repo_url = repo_url
 
         if not git.is_repo(self.path):
             git.clone(repo_url, self.path)
-        git.update(self.path)
+        if update:
+            git.update(self.path)
